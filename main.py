@@ -1,1 +1,9 @@
-print("Deep Agent Project Started")
+from agent.graph import graph
+
+result = graph.invoke(
+    {
+        "message": "Hello Agent"
+    }
+)
+
+print(result)
