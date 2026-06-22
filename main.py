@@ -1,12 +1,13 @@
 from agent.graph import graph
-
 result = graph.invoke(
     {
-        "query": "Latest AI news",
+        "query": "Generate a report on AI in Healthcare",
         "plan": "",
+        "todos": [],
+        "notes": [],
         "research": "",
         "answer": "",
-        "need_search": False,
+        "critique": ""
     }
 )
 

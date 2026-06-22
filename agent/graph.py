@@ -1,96 +1,196 @@
 from langgraph.graph import StateGraph, START, END
 from agent.state import AgentState
 from agent.tools import search_tool
+from agent.llm import llm
+from agent.memory import save_notes
+from reports.report_writer import save_report
+from agent.critic import critique_report
+
+
 
 
 def planner_node(state: AgentState):
 
-    query = state["query"].lower()
+    prompt = f"""
+You are a research planning agent.
 
-    search_keywords = [
-        "latest",
-        "news",
-        "current",
-        "today",
-        "recent"
-    ]
+Break the following request into 4-6 research tasks.
 
-    need_search = any(
-        word in query
-        for word in search_keywords
-    )
+Return ONLY the tasks.
+
+Request:
+{state['query']}
+"""
+
+    response = llm.invoke(prompt)
+
+    tasks = []
+
+    for line in response.content.split("\n"):
+
+        line = line.strip()
+
+        if not line:
+            continue
+
+        line = line.lstrip("1234567890.- ")
+
+        tasks.append(
+            {
+                "task": line,
+                "status": "pending"
+            }
+        )
 
     return {
-        "plan": f"Plan for: {state['query']}",
-        "need_search": need_search
+        "plan": "Research plan generated",
+        "todos": tasks
     }
 
 
-def route_after_planner(state: AgentState):
+def execute_todo_node(state: AgentState):
 
-    if state["need_search"]:
-        return "researcher"
+    todos = state["todos"]
+
+    pending_task = None
+
+    for todo in todos:
+
+        if todo["status"] == "pending":
+            pending_task = todo
+            break
+
+    if pending_task is None:
+        return {
+            "notes": state["notes"]
+        }
+
+    print(
+        "Executing:",
+        pending_task["task"]
+    )
+
+    result = search_tool(
+        pending_task["task"]
+    )
+
+    summary = ""
+
+    for item in result["results"][:3]:
+
+        summary += (
+            item["title"]
+            + "\n"
+            + item["content"][:200]
+            + "\n\n"
+        )
+
+    pending_task["status"] = "completed"
+
+    updated_notes = state["notes"] + [
+        {
+            "task": pending_task["task"],
+            "content": summary
+        }
+    ]
+    save_notes(updated_notes)
+
+    return {
+        "todos": todos,
+        "notes": updated_notes
+    }
+
+
+def should_continue(state: AgentState):
+
+    for todo in state["todos"]:
+
+        if todo["status"] == "pending":
+            return "executor"
 
     return "responder"
 
 
-def research_node(state: AgentState):
-
-    result = search_tool(state["query"])
-
-    summaries = []
-
-    for item in result["results"]:
-        summaries.append(
-            f"{item['title']}\n{item['content'][:200]}"
-        )
-
-    return {
-        "research": "\n\n".join(summaries)
-    }
-
-
 def response_node(state: AgentState):
 
-    if state["research"]:
+    notes_text = ""
 
-        answer = f"""
-Query:
-{state['query']}
+    for note in state["notes"]:
 
-Research Findings:
-{state['research']}
+        notes_text += (
+            f"Task: {note['task']}\n"
+            f"Research:\n{note['content']}\n\n"
+        )
+
+    prompt = f"""
+You are a professional research analyst.
+
+Using the research notes below,
+write a structured report.
+
+Include:
+
+1. Introduction
+2. Key Findings
+3. Challenges
+4. Future Outlook
+5. Conclusion
+
+Research Notes:
+
+{notes_text}
 """
 
-    else:
+    response = llm.invoke(prompt)
 
-        answer = f"""
-Query:
-{state['query']}
-
-No web search required.
-Answer generated directly.
-"""
+    report_path = save_report(
+    response.content
+)
 
     return {
-        "answer": answer
+    "answer": response.content
+    + f"\n\nReport saved to: {report_path}"
+}
+
+
+def critic_node(state: AgentState):
+
+    review = critique_report(
+        state["answer"]
+    )
+
+    return {
+        "critique": review
     }
+
+
 
 
 builder = StateGraph(AgentState)
 
+
 builder.add_node("planner", planner_node)
-builder.add_node("researcher", research_node)
+builder.add_node("executor", execute_todo_node)
 builder.add_node("responder", response_node)
+builder.add_node(
+    "critic",
+    critic_node
+)
+
 
 builder.add_edge(START, "planner")
 
-builder.add_conditional_edges(
+builder.add_edge(
     "planner",
-    route_after_planner
+    "executor"
 )
 
-builder.add_edge("researcher", "responder")
-builder.add_edge("responder", END)
+builder.add_conditional_edges(
+    "executor",
+    should_continue
+)
+
+builder.add_edge("responder", "critic")
+builder.add_edge("critic", END)
 
 graph = builder.compile()
