@@ -2,4 +2,8 @@ from typing import TypedDict
 
 
 class AgentState(TypedDict):
-    message: str
+    query: str
+    plan: str
+    research: str
+    answer: str
+    need_search: bool
