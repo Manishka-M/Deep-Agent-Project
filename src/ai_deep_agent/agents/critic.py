@@ -6,6 +6,15 @@ import json
 from langchain_core.messages import HumanMessage, SystemMessage
 from ai_deep_agent.llms.factory import get_llm
 
+def _x(resp) -> str:
+    """Extract text from LLM response (handles Gemini list format)."""
+    c = resp.content
+    if isinstance(c, list):
+        return " ".join(p.get("text","") if isinstance(p,dict) else str(p) for p in c).strip()
+    return str(c).strip()
+
+
+
 CRITIC_PROMPT = """
 You are the Quality Gate of an autonomous deep-research AI system.
 Your decision determines whether a worker's output is accepted or must be revised.
@@ -58,7 +67,7 @@ def evaluate_task(task: str, response: str, agent_type: str = "generic") -> dict
         )),
     ]
     try:
-        raw     = _llm.invoke(messages).content.strip()
+        raw     = _x(_llm.invoke(messages))
         content = raw.replace("```json", "").replace("```", "").strip()
         review  = json.loads(content)
         review.setdefault("decision",             "pass")

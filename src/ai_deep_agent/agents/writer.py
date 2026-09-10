@@ -3,6 +3,15 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from ai_deep_agent.llms.factory import get_llm
 from ai_deep_agent.memory.virtual_fs import workspace
 
+def _x(resp) -> str:
+    """Extract text from LLM response (handles Gemini list format)."""
+    c = resp.content
+    if isinstance(c, list):
+        return " ".join(p.get("text","") if isinstance(p,dict) else str(p) for p in c).strip()
+    return str(c).strip()
+
+
+
 _WRITER_PROMPT = """
 You are the Writer Agent of an autonomous deep-research AI system.
 You produce the polished, user-facing final report.
@@ -67,6 +76,6 @@ def run_writer(task: str, task_id: int, feedback: str = "", previous_output: str
             + f"All Research Material:\n{ctx}"
         )),
     ]
-    result   = _llm.invoke(messages).content.strip()
+    result   = _x(_llm.invoke(messages))
     workspace.write("final_report.md", result)
     return {"result": result, "filename": "final_report.md", "writer_used": True}

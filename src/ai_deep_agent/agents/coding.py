@@ -3,6 +3,15 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from ai_deep_agent.llms.factory import get_llm
 from ai_deep_agent.memory.virtual_fs import workspace
 
+def _x(resp) -> str:
+    """Extract text from LLM response (handles Gemini list format)."""
+    c = resp.content
+    if isinstance(c, list):
+        return " ".join(p.get("text","") if isinstance(p,dict) else str(p) for p in c).strip()
+    return str(c).strip()
+
+
+
 _CODING_PROMPT = """
 You are the Coding Agent of an autonomous AI system.
 You write production-quality code with full explanations.
@@ -62,7 +71,7 @@ def run_coding(task: str, task_id: int, feedback: str = "", previous_output: str
             + (f"Available context:\n{ctx}" if ctx != "(workspace empty)" else "")
         )),
     ]
-    result   = _llm.invoke(messages).content.strip()
+    result   = _x(_llm.invoke(messages))
     filename = f"coding_task_{task_id}.md"
     workspace.write(filename, result)
     return {"result": result, "filename": filename}

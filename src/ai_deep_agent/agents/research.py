@@ -7,6 +7,15 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from ai_deep_agent.llms.factory import get_llm
 from ai_deep_agent.memory.virtual_fs import workspace
 
+def _x(resp) -> str:
+    """Extract text from LLM response (handles Gemini list format)."""
+    c = resp.content
+    if isinstance(c, list):
+        return " ".join(p.get("text","") if isinstance(p,dict) else str(p) for p in c).strip()
+    return str(c).strip()
+
+
+
 # Keep workspace context under ~5,000 chars sent to LLM
 MAX_CTX_CHARS = 5_000
 
@@ -72,7 +81,7 @@ def run_research(
             + f"Workspace Material:\n{ctx}"
         )),
     ]
-    result   = _llm.invoke(messages).content.strip()
+    result   = _x(_llm.invoke(messages))
     filename = f"research_task_{task_id}.md"
     workspace.write(filename, result)
     return {"result": result, "filename": filename}

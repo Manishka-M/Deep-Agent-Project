@@ -6,6 +6,15 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from ai_deep_agent.llms.factory import get_llm
 from ai_deep_agent.tools.todo_tools import write_todos
 
+def _x(resp) -> str:
+    """Extract text from LLM response (handles Gemini list format)."""
+    c = resp.content
+    if isinstance(c, list):
+        return " ".join(p.get("text","") if isinstance(p,dict) else str(p) for p in c).strip()
+    return str(c).strip()
+
+
+
 PLANNER_PROMPT = """
 You are the Strategic Planner of an autonomous deep-research AI system.
 

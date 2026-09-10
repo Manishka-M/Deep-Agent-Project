@@ -19,6 +19,15 @@ from ai_deep_agent.memory.virtual_fs import workspace
 from ai_deep_agent.state.state     import AgentState
 import ai_deep_agent.display.console as ui
 
+def _x(resp) -> str:
+    """Extract text from LLM response (handles Gemini list format)."""
+    c = resp.content
+    if isinstance(c, list):
+        return " ".join(p.get("text","") if isinstance(p,dict) else str(p) for p in c).strip()
+    return str(c).strip()
+
+
+
 MAX_RETRIES = 2
 
 ROUTER_PROMPT = """
@@ -62,7 +71,7 @@ def _route(task: str, ctx_summary: str = "") -> str:
         SystemMessage(content=ROUTER_PROMPT),
         HumanMessage(content=f"Task:\n{msg}"),
     ])
-    worker = response.content.strip().lower().rstrip(".")
+    worker = _x(response).lower().rstrip(".")
     return worker if worker in DISPATCH else "research"
 
 
