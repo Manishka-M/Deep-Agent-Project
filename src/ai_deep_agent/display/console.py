@@ -32,7 +32,7 @@ def header(query: str) -> None:
     console.print(Rule(style="bright_blue"))
     console.print(
         Panel(
-            f"[bold bright_white]AI Deep-Agent v3[/bold bright_white]  —  [dim]Autonomous Cognitive Research Engine[/dim]\n\n"
+            f"[bold bright_white]AI-AUTONOMOUS COGNITIVE ENGINE[/bold bright_white]  —  [dim]FOR DEEP-RESEARCH AND LONG HORIZON TASKS[/dim]\n\n"
             f"[bold yellow]Query:[/bold yellow]  {query}",
             border_style="bright_blue",
             padding=(1, 4),

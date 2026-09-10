@@ -15,7 +15,7 @@ import streamlit as st
 #  Page config  (must be first Streamlit call)                        #
 # ------------------------------------------------------------------ #
 st.set_page_config(
-    page_title="AI Deep-Agent v3",
+    page_title="AI-AUTONOMOUS COGNITIVE ENGINE FOR DEEP-RESEARCH AND LONG HORIZON TASKS",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -46,8 +46,8 @@ except Exception:
 # ------------------------------------------------------------------ #
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/4616/4616013.png", width=64)
-    st.title("AI Deep-Agent v3")
-    st.caption("Autonomous Cognitive Research Engine")
+    st.title("AI-AUTONOMOUS COGNITIVE ENGINE FOR DEEP-RESEARCH AND LONG HORIZON TASKS")
+    st.caption("Deep-Research · Long Horizon Tasks · Autonomous Multi-Agent System")
     st.divider()
 
     st.markdown("### 🧠 Agent Architecture")
@@ -74,7 +74,7 @@ with st.sidebar:
 # ------------------------------------------------------------------ #
 st.markdown("""
 <h1 style='text-align:center;'>
-    🧠 AI Deep-Agent v3
+    🧠 AI-AUTONOMOUS COGNITIVE ENGINE FOR DEEP-RESEARCH AND LONG HORIZON TASKS
 </h1>
 <p style='text-align:center; color:gray;'>
     Ask anything — the agent plans, researches, reasons, and writes a full report.
