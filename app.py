@@ -26,7 +26,7 @@ st.set_page_config(
 # ------------------------------------------------------------------ #
 def _load_secrets():
     """Pull keys from Streamlit Cloud secrets or fall back to .env file."""
-    for key in ["GROQ_API_KEY", "GROQ_MODEL", "GEMINI_API_KEY",
+    for key in ["ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "GEMINI_API_KEY",
                 "GEMINI_MODEL", "GEMINI_ROLES", "TAVILY_API_KEY"]:
         if key in st.secrets and not os.environ.get(key):
             os.environ[key] = st.secrets[key]
@@ -64,7 +64,7 @@ with st.sidebar:
 """)
     st.divider()
     st.markdown("### ⚙️ Config")
-    model = os.environ.get("GROQ_MODEL", "not set")
+    model = os.environ.get("ANTHROPIC_MODEL", "not set")
     st.code(f"Model: {model}")
     st.divider()
     st.caption("👨‍💻 Built by Manishka | Placement Project")
@@ -106,7 +106,7 @@ query = st.text_area(
 
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    run_btn = st.button("🚀 Run Deep-Agent", use_container_width=True, type="primary")
+    run_btn = st.button("🚀 Run Deep-Research Engine", use_container_width=True, type="primary")
 
 st.divider()
 
@@ -197,7 +197,7 @@ def _setup_streamlit_console(log_container):
 # ------------------------------------------------------------------ #
 if run_btn and query.strip():
     # Check keys
-    missing = [k for k in ["GROQ_API_KEY", "TAVILY_API_KEY"]
+    missing = [k for k in ["ANTHROPIC_API_KEY", "TAVILY_API_KEY"]
                if not os.environ.get(k, "").strip()]
     if missing:
         st.error(
