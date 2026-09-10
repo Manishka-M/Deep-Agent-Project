@@ -1,5 +1,5 @@
 from ai_deep_agent.config.settings import (
-     GEMINI_API_KEY, GEMINI_MODEL, GEMINI_ROLES, ANTHROPIC_API_KEY, ANTHROPIC_MODEL
+    ANTHROPIC_API_KEY, ANTHROPIC_MODEL, GEMINI_API_KEY, GEMINI_MODEL, GEMINI_ROLES
 )
 
 def get_llm(role: str = "default", temperature: float = 0.0):
@@ -12,9 +12,8 @@ def get_llm(role: str = "default", temperature: float = 0.0):
             )
         except Exception:
             pass
-        from langchain_anthropic import ChatAnthropic
-        return ChatAnthropic(
+    from langchain_anthropic import ChatAnthropic
+    return ChatAnthropic(
         model=ANTHROPIC_MODEL, api_key=ANTHROPIC_API_KEY,
         temperature=temperature, max_retries=3,
-    
     )
