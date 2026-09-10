@@ -1,5 +1,5 @@
 from ai_deep_agent.config.settings import (
-    GROQ_API_KEY, GROQ_MODEL, GEMINI_API_KEY, GEMINI_MODEL, GEMINI_ROLES
+     GEMINI_API_KEY, GEMINI_MODEL, GEMINI_ROLES, ANTHROPIC_API_KEY, ANTHROPIC_MODEL
 )
 
 def get_llm(role: str = "default", temperature: float = 0.0):
@@ -12,8 +12,9 @@ def get_llm(role: str = "default", temperature: float = 0.0):
             )
         except Exception:
             pass
-    from langchain_groq import ChatGroq
-    return ChatGroq(
-        model=GROQ_MODEL, api_key=GROQ_API_KEY,
+        from langchain_anthropic import ChatAnthropic
+        return ChatAnthropic(
+        model=ANTHROPIC_MODEL, api_key=ANTHROPIC_API_KEY,
         temperature=temperature, max_retries=3,
+    
     )
