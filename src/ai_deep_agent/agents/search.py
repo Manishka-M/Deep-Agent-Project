@@ -10,6 +10,15 @@ from ai_deep_agent.config.settings import TAVILY_API_KEY
 from ai_deep_agent.llms.factory import get_llm
 from ai_deep_agent.memory.virtual_fs import workspace
 
+def _x(resp) -> str:
+    """Extract text from LLM response (handles Gemini list format)."""
+    c = resp.content
+    if isinstance(c, list):
+        return " ".join(p.get("text","") if isinstance(p,dict) else str(p) for p in c).strip()
+    return str(c).strip()
+
+
+
 # ---------------------------------------------------------------
 # Token budget: keep total prompt under ~3,500 words (~4,500 tokens)
 # to stay safely within Groq free-tier limits.
@@ -56,10 +65,10 @@ _client    = TavilyClient(api_key=TAVILY_API_KEY)
 def _generate_queries(task: str, feedback: str = "") -> list[str]:
     prompt = f"Task: {task}" + (f"\nFeedback: {feedback}" if feedback else "")
     try:
-        raw = _query_llm.invoke([
+        raw = _x(_query_llm.invoke([
             SystemMessage(content=_QUERY_GEN_PROMPT),
             HumanMessage(content=prompt),
-        ]).content.strip().replace("```python","").replace("```","").strip()
+        ])).replace("```python","").replace("```","").strip()
         queries = eval(raw)
         if isinstance(queries, list) and all(isinstance(q, str) for q in queries):
             return queries[:2]   # max 2 queries to stay within rate limits
@@ -117,7 +126,7 @@ def run_search(
             + f"Raw Search Results:\n{combined_raw}"
         )),
     ]
-    result   = _llm.invoke(messages).content.strip()
+    result   = _x(_llm.invoke(messages))
     filename = f"search_task_{task_id}.md"
     workspace.write(filename, result)
     return {"result": result, "sources": all_sources, "filename": filename}
