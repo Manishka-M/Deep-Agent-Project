@@ -1,21 +1,16 @@
 """
-AI Deep-Agent v3  —  Streamlit Web Interface
-=============================================
-Runs the full autonomous agent pipeline in a browser.
-Deploy to Streamlit Cloud for a shareable portfolio URL.
-
-Local dev:  streamlit run app.py
+AI_AUTONOMOUS COGNITIVE ENGINE FOR DEEP-RESEARCH AND LONG HORIZON TASKS
+Streamlit Web Interface  —  v4 (clean output: final report only)
 """
-import sys, os, time, threading, queue
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
-
+import os
+import time
 import streamlit as st
 
 # ------------------------------------------------------------------ #
 #  Page config  (must be first Streamlit call)                        #
 # ------------------------------------------------------------------ #
 st.set_page_config(
-    page_title="AI-AUTONOMOUS COGNITIVE ENGINE FOR DEEP-RESEARCH AND LONG HORIZON TASKS",
+    page_title="AI_AUTONOMOUS COGNITIVE ENGINE FOR DEEP-RESEARCH AND LONG HORIZON TASKS",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -34,37 +29,35 @@ def _load_secrets():
 try:
     _load_secrets()
 except Exception:
-    # st.secrets not configured — fall back to .env
-    try:
-        from dotenv import load_dotenv
-        load_dotenv()
-    except ImportError:
-        pass
+    pass   # running locally without secrets
+
+from dotenv import load_dotenv
+load_dotenv()
 
 # ------------------------------------------------------------------ #
 #  Sidebar                                                            #
 # ------------------------------------------------------------------ #
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/4616/4616013.png", width=64)
-    st.title("AI-AUTONOMOUS COGNITIVE ENGINE FOR DEEP-RESEARCH AND LONG HORIZON TASKS")
+    st.title("AI_AUTONOMOUS COGNITIVE ENGINE FOR DEEP-RESEARCH AND LONG HORIZON TASKS")
     st.caption("Deep-Research · Long Horizon Tasks · Autonomous Multi-Agent System")
     st.divider()
 
     st.markdown("### 🧠 Agent Architecture")
     st.markdown("""
 | Agent | Role |
-|-------|------|
-| 📝 Planner | Decomposes query into tasks |
-| 🔍 Search | Multi-query web research |
-| 🔬 Research | Deep analytical reasoning |
-| 🧮 Math | Step-by-step computation |
-| 💻 Coding | Code + complexity analysis |
-| ✍️ Writer | Polished final report |
-| ⚖️ Critic | Quality gatekeeper |
+|---|---|
+| 📌 Planner | Decomposes query into tasks |
+| 🔍 Search | Live web search & evidence |
+| 🔬 Research | Deep analysis & synthesis |
+| 📊 Math | Calculations & proofs |
+| 💻 Coding | Code generation & debug |
+| ✍️ Writer | Final report synthesis |
+| ⚖️ Critic | Quality gate on final report |
 """)
     st.divider()
     st.markdown("### ⚙️ Config")
-    model = os.environ.get("ANTHROPIC_MODEL", "not set")
+    model = os.environ.get("ANTHROPIC_MODEL") or os.environ.get("GEMINI_MODEL", "not set")
     st.code(f"Model: {model}")
     st.divider()
     st.caption("👨‍💻 Built by Manishka | Placement Project")
@@ -74,7 +67,7 @@ with st.sidebar:
 # ------------------------------------------------------------------ #
 st.markdown("""
 <h1 style='text-align:center;'>
-    🧠 AI-AUTONOMOUS COGNITIVE ENGINE FOR DEEP-RESEARCH AND LONG HORIZON TASKS
+    🧠 AI_AUTONOMOUS COGNITIVE ENGINE FOR DEEP-RESEARCH AND LONG HORIZON TASKS
 </h1>
 <p style='text-align:center; color:gray;'>
     Ask anything — the agent plans, researches, reasons, and writes a full report.
@@ -83,121 +76,24 @@ st.markdown("""
 
 st.divider()
 
-# Example queries
-EXAMPLES = [
-    "How has India asserted its geopolitical influence in the last decade?",
-    "Compare Rust and Go for building high-throughput microservices.",
-    "What is the current state of AI regulation globally? Compare EU AI Act vs US approaches.",
-    "Explain the new world of AI and how humans can keep their jobs and earn more.",
-    "Implement binary search in Java with full complexity analysis.",
-]
-
-with st.expander("💡 Example queries (click to expand)", expanded=False):
-    for i, ex in enumerate(EXAMPLES):
-        if st.button(ex, key=f"ex_{i}", use_container_width=True):
-            st.session_state["query_input"] = ex
-
 query = st.text_area(
-    label="🔎 Your Research Query",
+    "🔍 Enter your research query",
+    placeholder="e.g. How will AI impact cybersecurity laws over the next decade?",
     height=100,
-    placeholder="e.g. What is quantum computing and how will it change cybersecurity?",
-    key="query_input",
 )
 
-col1, col2, col3 = st.columns([1, 2, 1])
+col1, col2 = st.columns([1, 5])
+with col1:
+    run_btn = st.button("🚀 Run Agent", type="primary", use_container_width=True)
 with col2:
-    run_btn = st.button("🚀 Run Deep-Research Engine", use_container_width=True, type="primary")
-
-st.divider()
-
-# ------------------------------------------------------------------ #
-#  Monkey-patch display.console to stream to Streamlit               #
-# ------------------------------------------------------------------ #
-def _setup_streamlit_console(log_container):
-    """
-    Replaces the rich console functions with Streamlit equivalents
-    so every agent step appears live in the browser.
-    """
-    import ai_deep_agent.display.console as _con
-    from rich.console import Console
-    from io import StringIO
-
-    def _emit(md: str):
-        log_container.markdown(md)
-
-    def header(query: str):
-        log_container.markdown(f"## 🧠 Query\n> {query}")
-
-    def planner_done(todos):
-        rows = "\n".join(f"| {t['id']} | {t['task']} |" for t in todos)
-        log_container.markdown(
-            f"### ✅ Planner created **{len(todos)} tasks**\n"
-            f"| # | Task |\n|---|------|\n{rows}"
-        )
-
-    def task_start(task_id, total, task_desc, worker):
-        icons = {"search": "🔍", "research": "🔬",
-                 "math": "🧮", "coding": "💻", "writer": "✍️"}
-        icon = icons.get(worker, "🧠")
-        log_container.markdown(
-            f"---\n#### Task {task_id}/{total} → {icon} **{worker.title()} Agent**\n"
-            f"`{task_desc}`"
-        )
-
-    def worker_result(worker, result, attempt):
-        attempt_str = f" (attempt {attempt+1})" if attempt > 0 else ""
-        with log_container.expander(
-            f"📤 {worker.title()} Agent Output{attempt_str}", expanded=True
-        ):
-            st.markdown(result)
-
-    def critic_pass(reason, strengths):
-        log_container.success(f"✔️ **Critic: PASS** — {reason}")
-
-    def critic_fail(reason, missing, instructions):
-        items = "\n".join(f"- {x}" for x in (instructions or [reason]))
-        log_container.warning(f"⚠️ **Critic: FAIL** — {reason}\n\n**Fixes needed:**\n{items}")
-
-    def retry_notice(attempt, max_retries, feedback):
-        log_container.info(f"🔄 **Retry {attempt}/{max_retries}** — {feedback[:120]}...")
-
-    def max_retries_hit(task_id):
-        log_container.warning(f"⚠️ Max retries reached for task {task_id}. Using best attempt.")
-
-    def task_accepted(task_id, worker, retries):
-        retry_str = f" after {retries} retr{'y' if retries==1 else 'ies'}" if retries else ""
-        log_container.markdown(f"✅ Task {task_id} accepted [{worker}]{retry_str}")
-
-    def final_answer(answer, writer_used):
-        pass  # handled separately below
-
-    def sources_panel(sources):
-        pass  # handled separately below
-
-    def summary_table(completed_tasks, duration):
-        pass  # handled separately below
-
-    # Patch all functions
-    _con.header        = header
-    _con.planner_done  = planner_done
-    _con.task_start    = task_start
-    _con.worker_result = worker_result
-    _con.critic_pass   = critic_pass
-    _con.critic_fail   = critic_fail
-    _con.retry_notice  = retry_notice
-    _con.max_retries_hit = max_retries_hit
-    _con.task_accepted = task_accepted
-    _con.final_answer  = final_answer
-    _con.sources_panel = sources_panel
-    _con.summary_table = summary_table
-
+    st.markdown("*The agent will plan, research, and write a full structured report.*")
 
 # ------------------------------------------------------------------ #
 #  Run agent and display results                                      #
 # ------------------------------------------------------------------ #
 if run_btn and query.strip():
     # Check keys
-    missing = [k for k in ["ANTHROPIC_API_KEY", "TAVILY_API_KEY"]
+    missing = [k for k in ["TAVILY_API_KEY"]
                if not os.environ.get(k, "").strip()]
     if missing:
         st.error(
@@ -206,61 +102,94 @@ if run_btn and query.strip():
         )
         st.stop()
 
-    st.markdown("### 📡 Agent Running...")
-    log_area = st.container()
-    _setup_streamlit_console(log_area)
-
     from ai_deep_agent.graph.builder import app
     from ai_deep_agent.state.state   import AgentState
 
     initial: AgentState = {
-        "messages":          [],
         "user_query":        query.strip(),
         "todos":             [],
         "planning_complete": False,
-        "completed_tasks":   [],
-        "final_answer":      "",
-        "writer_used":       False,
-        "retry_counts":      {},
         "execution_log":     [],
         "sources":           [],
+        "retry_counts":      {},
+        "all_tasks_complete": False,
+        "final_report":      "",
     }
 
-    t0     = time.time()
-    result = app.invoke(initial)
-    dur    = time.time() - t0
+    # Progress area
+    progress_container = st.container()
+    with progress_container:
+        st.markdown("### ⏳ Running Agent...")
+        status_area = st.empty()
+        task_list   = st.empty()
 
-    # ---- Final Answer ----
+    with st.spinner("🧠 Agent thinking..."):
+        start = time.time()
+        result = app.invoke(initial)
+        elapsed = time.time() - start
+
+    # ------------------------------------------------------------------ #
+    #  Display: execution summary (compact) + final report only          #
+    # ------------------------------------------------------------------ #
+    st.success(f"✅ Completed in {elapsed:.1f}s")
     st.divider()
-    st.markdown("## 📊 Final Report")
-    st.markdown(result["final_answer"])
 
-    # ---- Sources ----
+    # --- Task execution summary (compact, no full outputs) ---
+    execution_log = result.get("execution_log", [])
+    if execution_log:
+        with st.expander("📋 Task Execution Summary", expanded=False):
+            worker_icons = {
+                "search":   "🔍",
+                "research": "🔬",
+                "math":     "📊",
+                "coding":   "💻",
+                "writer":   "✍️",
+            }
+            for entry in execution_log:
+                icon   = worker_icons.get(entry.get("worker", ""), "⚙️")
+                task_n = entry.get("task_id", "?")
+                task_t = entry.get("task", "")[:80]
+                worker = entry.get("worker", "?").capitalize()
+                verdict = entry.get("verdict", "PASS")
+                badge  = "✅" if verdict == "PASS" else "🔄"
+                st.markdown(f"{badge} **Task {task_n}** {icon} `{worker}` — {task_t}...")
+
+    # --- Final Report (beautiful, full width) ---
+    final_report = result.get("final_report", "")
+
+    st.markdown("## 📝 Final Report")
+    st.divider()
+
+    if final_report:
+        st.markdown(final_report)
+    else:
+        # Fallback: show last task output if writer wasn't reached
+        if execution_log:
+            last = execution_log[-1]
+            st.markdown(last.get("result", "*No output generated.*"))
+        else:
+            st.warning("⚠️ No output was generated. Try a simpler query.")
+
+    # --- Sources ---
     sources = result.get("sources", [])
     if sources:
         st.divider()
-        st.markdown("## 🔗 Sources")
-        for s in sources:
-            title = s.get("title", "Source")
-            url   = s.get("url", "")
-            if url:
-                st.markdown(f"- [{title}]({url})")
+        with st.expander("🔗 Sources", expanded=False):
+            seen = set()
+            for s in sources:
+                url = s.get("url", "")
+                if url and url not in seen:
+                    seen.add(url)
+                    title = s.get("title", url)
+                    st.markdown(f"- [{title}]({url})")
 
-    # ---- Summary Table ----
+    # --- Download report ---
     st.divider()
-    st.markdown("## 📋 Execution Summary")
-    tasks = result.get("completed_tasks", [])
-    if tasks:
-        import pandas as pd
-        df = pd.DataFrame([{
-            "#":        t["id"],
-            "Task":     t["task"][:70] + ("..." if len(t["task"]) > 70 else ""),
-            "Agent":    t["worker"].title(),
-            "Retries":  t.get("retries", 0),
-            "Status":   "✅ Pass" if t.get("review", {}) and t["review"].get("decision") == "pass" else "✔️ Done",
-        } for t in tasks])
-        st.dataframe(df, use_container_width=True, hide_index=True)
-    st.success(f"⏱️ Completed in **{dur:.1f}s** | {len(tasks)} tasks")
-
-elif run_btn:
-    st.warning("⚠️ Please enter a query before running.")
+    report_text = final_report or (execution_log[-1].get("result", "") if execution_log else "")
+    if report_text:
+        st.download_button(
+            label="⬇️ Download Report",
+            data=report_text,
+            file_name="ai_research_report.md",
+            mime="text/markdown",
+        )
