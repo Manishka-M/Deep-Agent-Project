@@ -5,6 +5,10 @@ Streamlit Web Interface  —  v4 (clean output: final report only)
 import os
 import time
 import streamlit as st
+import sys
+
+# Add src/ to path so ai_deep_agent package is found
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 # ------------------------------------------------------------------ #
 #  Page config  (must be first Streamlit call)                        #
